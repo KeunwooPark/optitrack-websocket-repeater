@@ -1,0 +1,27 @@
+{
+  "name": "optitrack-websocket-repeater",
+  "version": "1.0.0",
+  "description": "Repeat optitrack data through websocket",
+  "main": "index.js",
+  "scripts": {
+    "watch": "ts-node-dev --respawn --transpile-only src/index.ts ",
+    "start": "ts-node src/index.ts",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KeunwooPark/optitrack-websocket-repeater.git"
+  },
+  "author": "Keunwoo Park",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/KeunwooPark/optitrack-websocket-repeater/issues"
+  },
+  "homepage": "https://github.com/KeunwooPark/optitrack-websocket-repeater#readme",
+  "dependencies": {
+    "ts-node": "^10.8.1"
+  },
+  "devDependencies": {
+    "ts-node-dev": "^2.0.0"
+  }
+}
