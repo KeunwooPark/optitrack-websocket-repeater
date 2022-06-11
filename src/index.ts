@@ -1,6 +1,7 @@
 import * as dgram from 'node:dgram';
 import { WebSocketServer } from 'ws';
 import settings from './settings'
+import unpack from "./ts-optitrack";
 
 const messageIds = {
     NAT_PING                  : 0,
@@ -31,11 +32,8 @@ dataSocket.on("listening", () => {
 dataSocket.bind(settings.optitrack.server_port);
 
 dataSocket.on("message", (message: Buffer, remote: dgram.RemoteInfo) => {
-    console.log(`message from ${remote.address}:${remote.port}`);
-    console.log(message);
+    unpack(message);
 });
-
-sendCommand(6, "");
 
 wss.on("connection", (ws) => {
     ws.on("message", (data, isBinary) => {
