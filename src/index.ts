@@ -1,9 +1,6 @@
 import * as dgram from 'node:dgram';
-
-const MULTICAST_INTERFACE = '192.168.0.2';
-const SERVER_HOST = "192.168.0.2";
-const SERVER_PORT = 1511;
-const COMMAND_PORT = 1510;
+import { WebSocketServer } from 'ws';
+import settings from './settings'
 
 const messageIds = {
     NAT_PING                  : 0,
@@ -18,19 +15,49 @@ const messageIds = {
     NAT_DISCONNECT            : 9,
     NAT_UNRECOGNIZED_REQUEST  : 100
 }
+const MULTICAST_INTERFACE = "239.255.42.99";
+
+const wss = new WebSocketServer({port: settings.websocket.port});
 
 const socket = dgram.createSocket('udp4');
+const dataSocket = dgram.createSocket('udp4');
 
-socket.on('message', (message: Buffer, remote: dgram.RemoteInfo) => {
+dataSocket.on("listening", () => {
+    console.log("listening");
+    dataSocket.setBroadcast(true);
+    dataSocket.addMembership(MULTICAST_INTERFACE)
+})
+
+dataSocket.bind(settings.optitrack.server_port);
+
+dataSocket.on("message", (message: Buffer, remote: dgram.RemoteInfo) => {
     console.log(`message from ${remote.address}:${remote.port}`);
-    console.log(message.toString());
+    console.log(message);
 });
 
-sendCommand(messageIds.NAT_REQUEST_MODELDEF);
+sendCommand(6, "");
 
-function sendCommand(command: number): void {
+wss.on("connection", (ws) => {
+    ws.on("message", (data, isBinary) => {
+        const dataStr = data.toString("utf-8");
+        const jsonData = JSON.parse(dataStr);
+        
+        const command = jsonData.natNetCommand as number;
+        const commandStr = jsonData.natNetCommandStr;
+        console.log("sent command", jsonData, command, commandStr);
+
+        sendCommand(command, commandStr);
+    });
+
+    socket.on('message', (message: Buffer, remote: dgram.RemoteInfo) => {
+        console.log(`message from ${remote.address}:${remote.port}`);
+        console.log(message.toString("utf-8"));
+        ws.send(message);
+    });
+});
+
+function sendCommand(command: number, commandStr = ""): void {
     let packetSize: number = 0;
-    let commandStr: string = "";
     if (command === messageIds.NAT_REQUEST_MODELDEF || command === messageIds.NAT_REQUEST_FRAMEOFDATA) {
         packetSize = 0;
         commandStr = "";
@@ -48,9 +75,7 @@ function sendCommand(command: number): void {
     dataBuffer.set(commandStrBuffer, commandBuffer.length + packetSizeBuffer.length);
     dataBuffer.set(nullCharBuffer, commandBuffer.length + packetSizeBuffer.length + commandStrBuffer.length);
 
-    console.log(commandBuffer, packetSizeBuffer, commandStrBuffer);
-
-    socket.send(dataBuffer, COMMAND_PORT, SERVER_HOST, (err, bytes) => {
-        console.log("data sent", dataBuffer);
+    socket.send(dataBuffer, settings.optitrack.command_port, settings.optitrack.host, (err, bytes) => {
+        console.log("send err", err);
     });
 }
